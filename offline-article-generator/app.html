@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Research Article Generator — Offline</title>
+<style>
+  :root {
+    --bg: #f6f4ee;
+    --paper: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #d8d4c7;
+    --accent: #8b2c2c;
+    --accent-soft: #f2e4e4;
+    --good: #2f6f4f;
+    --field: #fbfaf6;
+    --shadow: 0 1px 0 rgba(0,0,0,.04), 0 12px 30px rgba(0,0,0,.06);
+    --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, "DejaVu Serif", "Source Serif Pro", Georgia, serif;
+    --sans: "Inter", "Helvetica Neue", "Segoe UI", Arial, "Noto Sans Bengali", sans-serif;
+    --bn: "Noto Serif Bengali", "Kalpurush", "SolaimanLipi", "Siyam Rupali", serif;
+  }
+  [data-theme="dark"] {
+    --bg: #14141a;
+    --paper: #1c1c24;
+    --ink: #ececec;
+    --muted: #9a9aa6;
+    --line: #2e2e3a;
+    --accent: #e07a7a;
+    --accent-soft: #2a1e1e;
+    --field: #232330;
+    --shadow: 0 1px 0 rgba(0,0,0,.4), 0 12px 30px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  body.bn { font-family: var(--bn); }
+  body.bn .serif, body.bn .preview { font-family: var(--bn); }
+  .serif { font-family: var(--serif); }
+
+  /* HEADER */
+  header.topbar {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: 1400px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px; gap: 16px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--serif); font-size: 22px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .brand .mark {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--ink); color: var(--paper);
+    display: grid; place-items: center;
+    font-family: var(--serif); font-weight: 700; font-size: 20px;
+    transform: rotate(-3deg);
+  }
+  .top-actions { display:flex; gap:10px; align-items:center; }
+  .btn {
+    border: 1px solid var(--line);
+    background: var(--paper); color: var(--ink);
+    padding: 9px 14px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all .15s ease;
+    font-family: inherit;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.ghost { background: transparent; }
+  .btn-icon { padding: 9px 12px; }
+
+  /* LAYOUT */
+  main.grid {
+    max-width: 1400px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 28px; padding: 28px;
+  }
+  @media (max-width: 1000px) { main.grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+  .panel-header {
+    padding: 18px 22px; border-bottom: 1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .panel-header h2 {
+    margin: 0; font-family: var(--serif); font-size: 18px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .panel-body { padding: 22px; }
+
+  /* FORMAT TABS */
+  .formats {
+    display:grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin-bottom: 22px;
+  }
+  @media (max-width: 600px) { .formats { grid-template-columns: 1fr 1fr; } }
+  .format-card {
+    border: 1px solid var(--line);
+    background: var(--field);
+    border-radius: 10px;
+    padding: 12px 10px; cursor: pointer;
+    text-align: left;
+    transition: all .15s ease;
+    font-family: inherit; color: inherit;
+  }
+  .format-card .opt { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.08em; }
+  .format-card .nm { font-family: var(--serif); font-weight: 700; font-size: 14px; margin-top: 4px; }
+  .format-card .desc { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .format-card:hover { border-color: var(--ink); }
+  .format-card.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .format-card.active .opt { color: var(--accent); }
+
+  /* META FIELDS */
+  .meta-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 22px;
+  }
+  @media (max-width: 600px) { .meta-grid { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .field input, .field textarea, .field select {
+    border: 1px solid var(--line);
+    background: var(--field); color: var(--ink);
+    border-radius: 8px; padding: 10px 12px;
+    font-family: inherit; font-size: 14px;
+    transition: border-color .15s;
+    width: 100%;
+  }
+  .field input:focus, .field textarea:focus {
+    outline: none; border-color: var(--ink);
+  }
+  .field.full { grid-column: 1 / -1; }
+
+  /* SECTIONS */
+  .section-list { display: flex; flex-direction: column; gap: 14px; }
+  .section-block {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--field);
+    overflow: hidden;
+  }
+  .sec-head {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 14px;
+    background: color-mix(in srgb, var(--field) 60%, var(--paper));
+    border-bottom: 1px solid var(--line);
+    gap: 10px;
+  }
+  .sec-head-left { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+  .sec-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--ink); color: var(--paper);
+    display:grid; place-items:center;
+    font-family: var(--serif); font-weight: 700; font-size: 13px;
+    flex-shrink: 0;
+  }
+  .sec-title-input {
+    border: none; background: transparent;
+    font-family: var(--serif); font-size: 16px; font-weight: 700;
+    color: var(--ink); flex: 1; min-width: 0;
+    padding: 4px 0;
+  }
+  .sec-title-input:focus { outline: none; }
+  .sec-actions { display:flex; gap: 4px; }
+  .icon-btn {
+    background: transparent; border: none; cursor: pointer;
+    width: 28px; height: 28px; border-radius: 6px;
+    color: var(--muted); display:grid; place-items:center;
+    transition: all .15s;
+  }
+  .icon-btn:hover { background: var(--accent-soft); color: var(--accent); }
+  .sec-help {
+    padding: 8px 14px; font-size: 12px; color: var(--muted);
+    background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
+    border-bottom: 1px solid var(--line);
+    line-height: 1.5;
+  }
+  .sec-body { padding: 12px 14px; }
+  .sec-textarea {
+    width: 100%; min-height: 110px;
+    border: 1px solid var(--line);
+    background: var(--paper); color: var(--ink);
+    border-radius: 6px; padding: 10px 12px;
+    font-family: var(--sans); font-size: 14px; line-height: 1.6;
+    resize: vertical;
+  }
+  body.bn .sec-textarea { font-family: var(--bn); }
+  .sec-textarea:focus { outline: none; border-color: var(--ink); }
+
+  /* ADD SECTION */
+  .add-section {
+    margin-top: 12px;
+    display: flex; gap: 8px;
+  }
+  .add-section input {
+    flex: 1;
+    border: 1px dashed var(--line); background: transparent;
+    border-radius: 8px; padding: 10px 12px;
+    font-family: inherit; font-size: 14px; color: var(--ink);
+  }
+  .add-section input:focus { outline: none; border-color: var(--ink); border-style: solid; }
+
+  /* REFERENCES */
+  .ref-list { display:flex; flex-direction: column; gap:8px; }
+  .ref-row {
+    display:flex; gap:8px; align-items:flex-start;
+    background: var(--paper);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .ref-num {
+    font-family: var(--serif); font-weight: 700;
+    min-width: 28px; color: var(--accent);
+  }
+  .ref-row textarea {
+    flex:1; border: none; background: transparent;
+    color: var(--ink); resize: vertical; min-height: 38px;
+    font-family: inherit; font-size: 13px; line-height: 1.5;
+  }
+  .ref-row textarea:focus { outline: none; }
+
+  /* FIGURES */
+  .figures-grid {
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+    gap: 10px;
+  }
+  .figure-card {
+    border:1px solid var(--line); border-radius:8px;
+    background: var(--paper); padding:8px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .figure-card img { width:100%; height: 110px; object-fit:cover; border-radius:5px; background:#eee; }
+  .figure-card input { width:100%; border:none; background: var(--field); padding:6px 8px; border-radius:5px; font-size:12px; font-family:inherit; color:var(--ink); }
+  .figure-card .rm { font-size:11px; color: var(--accent); cursor:pointer; text-align:right; }
+
+  /* TABLES */
+  .table-builder { background: var(--paper); border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .tbl-input { width:100%; border:1px solid var(--line); background:var(--field); padding:6px 8px; font-family:inherit; font-size:12px; color:var(--ink); border-radius:4px; }
+  .tbl-input:focus { outline:none; border-color: var(--ink); }
+  .tbl-grid { display:grid; gap:4px; margin-top:8px; overflow-x:auto; }
+  .tbl-controls { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .small-btn { font-size:11px; padding:5px 10px; border-radius:6px; border:1px solid var(--line); background:var(--field); color:var(--ink); cursor:pointer; font-family:inherit; }
+  .small-btn:hover { border-color: var(--ink); }
+  .tbl-caption { margin-bottom:6px; }
+
+  /* COLLAPSE */
+  details.collapsible { border:1px solid var(--line); border-radius:10px; background: var(--field); margin-top: 22px; }
+  details.collapsible > summary {
+    cursor: pointer; padding: 12px 16px;
+    font-family: var(--serif); font-weight: 700; font-size: 15px;
+    list-style: none; display:flex; justify-content:space-between; align-items:center;
+  }
+  details.collapsible > summary::-webkit-details-marker { display:none; }
+  details.collapsible > summary::after { content: "+"; font-size: 20px; color: var(--muted); }
+  details.collapsible[open] > summary::after { content: "−"; }
+  details.collapsible > div { padding: 0 16px 16px 16px; border-top: 1px solid var(--line); }
+
+  /* PREVIEW */
+  .preview-wrap { overflow-y: auto; max-height: calc(100vh - 200px); }
+  .preview {
+    font-family: var(--serif);
+    background: #fff;
+    color: #111;
+    padding: 56px 60px;
+    min-height: 100%;
+    line-height: 1.65;
+  }
+  body.bn .preview { font-family: var(--bn); }
+  .preview .doc-title {
+    font-size: 24px; font-weight: 700; text-align: center;
+    line-height: 1.25; margin: 0 0 12px 0; letter-spacing: -0.01em;
+  }
+  .preview .authors {
+    text-align: center; font-size: 13px; margin: 0 0 4px 0;
+  }
+  .preview .affil {
+    text-align: center; font-size: 12px; font-style: italic;
+    color: #444; margin: 0 0 4px 0;
+  }
+  .preview .email {
+    text-align: center; font-size: 11px; color: #555; margin: 0 0 24px 0;
+  }
+  .preview h3.sec-h {
+    font-size: 14px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; margin: 24px 0 8px 0;
+    border-bottom: 1px solid #999; padding-bottom: 3px;
+  }
+  .preview h4.sub-h {
+    font-size: 13px; font-weight: 700; margin: 16px 0 6px 0;
+    font-style: italic;
+  }
+  .preview p { margin: 0 0 10px 0; text-align: justify; font-size: 13.5px; }
+  .preview p.abstract-text { font-size: 12.5px; font-style: italic; }
+  .preview .keywords { font-size: 12px; margin-top: 8px; }
+  .preview .keywords b { font-weight: 700; }
+  .preview .ref-item {
+    font-size: 12px; padding-left: 24px; text-indent: -24px;
+    margin-bottom: 5px;
+  }
+  .preview .fig {
+    margin: 18px 0; text-align: center;
+  }
+  .preview .fig img { max-width: 100%; max-height: 260px; border:1px solid #ddd; }
+  .preview .fig-cap { font-size: 11.5px; margin-top: 6px; color: #333; }
+  .preview .fig-cap b { font-weight: 700; }
+  .preview table.doc-tbl {
+    width: 100%; border-collapse: collapse;
+    margin: 14px 0; font-size: 12px;
+  }
+  .preview table.doc-tbl th, .preview table.doc-tbl td {
+    border: 1px solid #888; padding: 6px 8px; text-align: left;
+  }
+  .preview table.doc-tbl th { background: #f0f0f0; font-weight: 700; }
+  .preview .tbl-cap-text { font-size: 11.5px; text-align: center; margin: 6px 0 4px 0; }
+
+  /* DOWNLOAD BAR */
+  .dl-bar {
+    position: sticky; bottom: 0;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    padding: 14px 22px;
+    display:flex; gap: 10px; justify-content: flex-end;
+    border-radius: 0 0 14px 14px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper);
+    padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; opacity: 0; pointer-events:none;
+    transition: all .25s ease;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+  /* HELP MODAL */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--paper); color: var(--ink);
+    border-radius: 12px; max-width: 600px; width: 100%;
+    max-height: 80vh; overflow-y: auto;
+    padding: 28px;
+  }
+  .modal h3 { font-family: var(--serif); margin-top:0; }
+  .modal ul { padding-left: 20px; }
+  .modal li { margin: 6px 0; font-size: 14px; }
+  .modal .close { float: right; }
+
+  /* HERO INSTRUCTIONS */
+  .hero {
+    max-width: 1400px; margin: 0 auto; padding: 32px 28px 0 28px;
+  }
+  .hero h1 {
+    font-family: var(--serif); font-size: clamp(28px, 4vw, 44px);
+    margin: 0 0 10px 0; letter-spacing: -0.02em; line-height: 1.1;
+  }
+  .hero p { color: var(--muted); margin: 0; max-width: 720px; font-size: 15px; }
+  .hero .tag {
+    display:inline-block; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 4px 10px; border-radius: 999px; margin-bottom: 12px;
+  }
+
+  /* PRINT */
+  @media print {
+    header.topbar, .panel.editor-panel, .dl-bar, .hero { display: none !important; }
+    .grid { grid-template-columns: 1fr !important; padding: 0 !important; }
+    .preview-panel { border: none !important; box-shadow: none !important; }
+    .preview { padding: 0; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body data-theme="light">
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="mark serif">R</div>
+      <span data-i18n="brand">Research Article Generator</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="helpBtn" data-testid="help-btn" data-i18n="help">Help</button>
+      <button class="btn ghost btn-icon" id="themeBtn" data-testid="theme-btn" title="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="btn" id="langBtn" data-testid="lang-btn">বাংলা</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <span class="tag" data-i18n="tag">100% Offline · No Server Required</span>
+  <h1 class="serif" data-i18n="heroTitle">Write beautifully structured research articles in minutes.</h1>
+  <p data-i18n="heroSub">Pick a format, fill in the guided sections, and export to polished PDF or editable DOCX — all in your browser.</p>
+</div>
+
+<main class="grid">
+
+  <!-- LEFT: EDITOR -->
+  <section class="panel editor-panel">
+    <div class="panel-header">
+      <h2 data-i18n="editor">Compose your article</h2>
+    </div>
+    <div class="panel-body">
+
+      <!-- FORMAT SELECTOR -->
+      <div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px;" data-i18n="chooseFormat">Choose a format</div>
+        <div class="formats" id="formats"></div>
+      </div>
+
+      <!-- METADATA -->
+      <div class="meta-grid">
+        <div class="field full">
+          <label data-i18n="lblTitle">Article Title</label>
+          <input type="text" id="metaTitle" data-testid="meta-title" placeholder="e.g., A Novel Approach to..." />
+        </div>
+        <div class="field full">
+          <label data-i18n="lblAuthors">Authors (comma-separated)</label>
+          <input type="text" id="metaAuthors" data-testid="meta-authors" placeholder="Jane Doe, John Smith"/>
+        </div>
+        <div class="field">
+          <label data-i18n="lblInst">Institution / Affiliation</label>
+          <input type="text" id="metaInst" data-testid="meta-inst" placeholder="University of ..."/>
+        </div>
+        <div class="field">
+          <label data-i18n="lblEmail">Corresponding Email</label>
+          <input type="email" id="metaEmail" data-testid="meta-email" placeholder="author@example.com"/>
+        </div>
+        <div class="field">
+          <label data-i18n="lblDate">Date</label>
+          <input type="date" id="metaDate" data-testid="meta-date"/>
+        </div>
+        <div class="field">
+          <label data-i18n="lblKeywords">Keywords (comma-separated)</label>
+          <input type="text" id="metaKeywords" data-testid="meta-keywords" placeholder="keyword1, keyword2"/>
+        </div>
+      </div>
+
+      <!-- SECTIONS -->
+      <div style="font-size:11px; font-weight:700; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px;" data-i18n="sections">Sections</div>
+      <div class="section-list" id="sectionList"></div>
+      <div class="add-section">
+        <input type="text" id="newSecName" placeholder="" data-i18n-ph="addSecPh"/>
+        <button class="btn" id="addSecBtn" data-testid="add-section-btn" data-i18n="addSec">+ Add section</button>
+      </div>
+
+      <!-- FIGURES -->
+      <details class="collapsible">
+        <summary data-i18n="figures">Figures / Images</summary>
+        <div>
+          <p style="font-size:12px; color:var(--muted); margin: 10px 0;" data-i18n="figuresHelp">Upload images with captions. They'll appear in your article and exports.</p>
+          <input type="file" id="figInput" accept="image/*" multiple style="margin-bottom:12px;" data-testid="fig-input"/>
+          <div class="figures-grid" id="figGrid"></div>
+        </div>
+      </details>
+
+      <!-- TABLES -->
+      <details class="collapsible">
+        <summary data-i18n="tables">Tables</summary>
+        <div>
+          <p style="font-size:12px; color:var(--muted); margin: 10px 0;" data-i18n="tablesHelp">Create simple tables. Type tab-separated rows or use the builder below.</p>
+          <div id="tableContainer"></div>
+          <button class="small-btn" id="addTableBtn" data-testid="add-table-btn" style="margin-top:8px;" data-i18n="addTable">+ Add table</button>
+        </div>
+      </details>
+
+      <!-- REFERENCES -->
+      <details class="collapsible">
+        <summary data-i18n="references">References</summary>
+        <div>
+          <p style="font-size:12px; color:var(--muted); margin: 10px 0;" data-i18n="refsHelp">Auto-numbered references. Use any citation style (APA, Vancouver, etc.).</p>
+          <div class="ref-list" id="refList"></div>
+          <button class="small-btn" id="addRefBtn" data-testid="add-ref-btn" style="margin-top:8px;" data-i18n="addRef">+ Add reference</button>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- RIGHT: PREVIEW -->
+  <section class="panel preview-panel">
+    <div class="panel-header">
+      <h2 data-i18n="preview">Live preview</h2>
+      <span style="font-size:11px; color:var(--muted);" data-i18n="previewNote">This is how your article will look</span>
+    </div>
+    <div class="preview-wrap">
+      <div class="preview" id="preview"></div>
+    </div>
+    <div class="dl-bar">
+      <button class="btn ghost" id="printBtn" data-testid="print-btn" data-i18n="print">Print</button>
+      <button class="btn accent" id="dlPdf" data-testid="dl-pdf-btn">PDF ↓</button>
+      <button class="btn primary" id="dlDocx" data-testid="dl-docx-btn">DOCX ↓</button>
+    </div>
+  </section>
+</main>
+
+<!-- HELP MODAL -->
+<div class="modal-backdrop" id="helpModal">
+  <div class="modal">
+    <button class="btn ghost close" id="closeHelp">×</button>
+    <h3 data-i18n="helpTitle">How to use</h3>
+    <ol style="padding-left:20px;">
+      <li data-i18n="help1">Choose a format that matches your article type.</li>
+      <li data-i18n="help2">Fill in the metadata (title, authors, etc.).</li>
+      <li data-i18n="help3">Paste or type content into each section. Helper text gives guidance.</li>
+      <li data-i18n="help4">Add figures, tables, and references as needed.</li>
+      <li data-i18n="help5">See the live preview update on the right.</li>
+      <li data-i18n="help6">Click PDF or DOCX to download your formatted article.</li>
+    </ol>
+    <p style="font-size:13px; color:var(--muted); margin-top:14px;" data-i18n="helpOffline">
+      Everything runs in your browser. Save this HTML file and use it offline anywhere — no internet, no server.
+    </p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- EMBEDDED LIBRARIES -->
+<script>/*__JSPDF__*/</script>
+<script>/*__HTML2CANVAS__*/</script>
+<script>/*__JSZIP__*/</script>
+
+<script>
+/* ============================================================
+   I18N
+============================================================ */
+const I18N = {
+  en: {
+    brand: "Research Article Generator",
+    help: "Help",
+    tag: "100% Offline · No Server Required",
+    heroTitle: "Write beautifully structured research articles in minutes.",
+    heroSub: "Pick a format, fill in the guided sections, and export to polished PDF or editable DOCX — all in your browser.",
+    editor: "Compose your article",
+    chooseFormat: "Choose a format",
+    lblTitle: "Article Title",
+    lblAuthors: "Authors (comma-separated)",
+    lblInst: "Institution / Affiliation",
+    lblEmail: "Corresponding Email",
+    lblDate: "Date",
+    lblKeywords: "Keywords (comma-separated)",
+    sections: "Sections",
+    addSec: "+ Add section",
+    addSecPh: "Section name (e.g., Background)",
+    figures: "Figures / Images",
+    figuresHelp: "Upload images with captions. They'll appear in your article and exports.",
+    tables: "Tables",
+    tablesHelp: "Create tables to include in your article. Edit cells inline.",
+    addTable: "+ Add table",
+    references: "References",
+    refsHelp: "Auto-numbered references. Use any citation style (APA, Vancouver, etc.).",
+    addRef: "+ Add reference",
+    preview: "Live preview",
+    previewNote: "This is how your article will look",
+    print: "Print",
+    helpTitle: "How to use",
+    help1: "Choose a format that matches your article type.",
+    help2: "Fill in the metadata (title, authors, etc.).",
+    help3: "Paste or type content into each section. Helper text gives guidance.",
+    help4: "Add figures, tables, and references as needed.",
+    help5: "See the live preview update on the right.",
+    help6: "Click PDF or DOCX to download your formatted article.",
+    helpOffline: "Everything runs in your browser. Save this HTML file and use it offline anywhere — no internet, no server.",
+    untitled: "Untitled Article",
+    abstract: "Abstract",
+    keywords: "Keywords",
+    references_h: "References",
+    figure: "Figure",
+    table: "Table",
+    pdfReady: "PDF downloaded",
+    docxReady: "DOCX downloaded",
+    generating: "Generating...",
+    rmCap: "remove",
+    capPh: "Caption...",
+    tblCapPh: "Table caption...",
+    refPh: "e.g., Smith J. (2024). Title of paper. Journal Name, 12(3), 45-60.",
+    contentPh: "Type or paste your content here..."
+  },
+  bn: {
+    brand: "রিসার্চ আর্টিকেল জেনারেটর",
+    help: "সাহায্য",
+    tag: "১০০% অফলাইন · কোনো সার্ভার লাগবে না",
+    heroTitle: "মিনিটের মধ্যে সুন্দর কাঠামোর গবেষণা প্রবন্ধ লিখুন।",
+    heroSub: "একটি ফরম্যাট বেছে নিন, গাইডেড সেকশনগুলো পূরণ করুন, এবং PDF বা DOCX ফরম্যাটে ডাউনলোড করুন — সবকিছু ব্রাউজারেই।",
+    editor: "আপনার আর্টিকেল লিখুন",
+    chooseFormat: "ফরম্যাট নির্বাচন করুন",
+    lblTitle: "আর্টিকেলের শিরোনাম",
+    lblAuthors: "লেখকগণ (কমা দিয়ে আলাদা)",
+    lblInst: "প্রতিষ্ঠান",
+    lblEmail: "যোগাযোগের ইমেইল",
+    lblDate: "তারিখ",
+    lblKeywords: "কীওয়ার্ড (কমা দিয়ে আলাদা)",
+    sections: "সেকশনসমূহ",
+    addSec: "+ সেকশন যোগ করুন",
+    addSecPh: "সেকশনের নাম (যেমন, পটভূমি)",
+    figures: "চিত্র / ছবি",
+    figuresHelp: "ক্যাপশনসহ ছবি আপলোড করুন। এগুলো আপনার আর্টিকেলে দেখা যাবে।",
+    tables: "টেবিল",
+    tablesHelp: "আপনার আর্টিকেলে যুক্ত করার জন্য টেবিল তৈরি করুন।",
+    addTable: "+ টেবিল যোগ করুন",
+    references: "তথ্যসূত্র",
+    refsHelp: "স্বয়ংক্রিয় নম্বরযুক্ত তথ্যসূত্র। যেকোনো স্টাইল ব্যবহার করুন (APA, Vancouver ইত্যাদি)।",
+    addRef: "+ তথ্যসূত্র যোগ করুন",
+    preview: "লাইভ প্রিভিউ",
+    previewNote: "এভাবে আপনার আর্টিকেল দেখাবে",
+    print: "প্রিন্ট",
+    helpTitle: "কীভাবে ব্যবহার করবেন",
+    help1: "আপনার আর্টিকেলের ধরন অনুযায়ী ফরম্যাট বেছে নিন।",
+    help2: "মেটাডেটা (শিরোনাম, লেখক ইত্যাদি) পূরণ করুন।",
+    help3: "প্রতিটি সেকশনে কনটেন্ট টাইপ বা পেস্ট করুন। গাইডলাইন টেক্সট সাহায্য করবে।",
+    help4: "প্রয়োজন অনুযায়ী চিত্র, টেবিল ও তথ্যসূত্র যোগ করুন।",
+    help5: "ডান পাশে লাইভ প্রিভিউ দেখতে পাবেন।",
+    help6: "PDF বা DOCX বাটনে ক্লিক করে আর্টিকেল ডাউনলোড করুন।",
+    helpOffline: "সবকিছু আপনার ব্রাউজারেই চলে। এই HTML ফাইলটি সেভ করে যেকোনো জায়গায় অফলাইনে ব্যবহার করুন — কোনো ইন্টারনেট দরকার নেই।",
+    untitled: "শিরোনামহীন আর্টিকেল",
+    abstract: "সারসংক্ষেপ",
+    keywords: "কীওয়ার্ডসমূহ",
+    references_h: "তথ্যসূত্র",
+    figure: "চিত্র",
+    table: "টেবিল",
+    pdfReady: "PDF ডাউনলোড সম্পন্ন",
+    docxReady: "DOCX ডাউনলোড সম্পন্ন",
+    generating: "তৈরি হচ্ছে...",
+    rmCap: "মুছুন",
+    capPh: "ক্যাপশন...",
+    tblCapPh: "টেবিল ক্যাপশন...",
+    refPh: "যেমন: Smith J. (2024). Title of paper. Journal Name, 12(3), 45-60.",
+    contentPh: "এখানে আপনার কনটেন্ট টাইপ বা পেস্ট করুন..."
+  }
+};
+
+/* ============================================================
+   FORMATS DEFINITION
+============================================================ */
+const FORMATS = {
+  research: {
+    name: { en: "Standard Research", bn: "স্ট্যান্ডার্ড গবেষণা" },
+    desc: { en: "Full academic paper", bn: "পূর্ণাঙ্গ একাডেমিক পেপার" },
+    sections: [
+      { t_en: "Abstract", t_bn: "সারসংক্ষেপ", abstract: true, h_en: "150–250 words summarising purpose, methods, results, and conclusion.", h_bn: "১৫০-২৫০ শব্দে উদ্দেশ্য, পদ্ধতি, ফলাফল ও উপসংহার।" },
+      { t_en: "Introduction", t_bn: "ভূমিকা", h_en: "Background, problem statement, research gap, and objectives.", h_bn: "পটভূমি, সমস্যা, গবেষণার শূন্যতা ও উদ্দেশ্য।" },
+      { t_en: "Literature Review", t_bn: "সাহিত্য পর্যালোচনা", h_en: "Summarise relevant prior work and theoretical framework.", h_bn: "প্রাসঙ্গিক পূর্ববর্তী গবেষণা ও তাত্ত্বিক কাঠামো।" },
+      { t_en: "Methodology", t_bn: "পদ্ধতি", h_en: "Study design, participants, instruments, procedures, and analysis.", h_bn: "গবেষণার নকশা, অংশগ্রহণকারী, যন্ত্র, প্রক্রিয়া ও বিশ্লেষণ।" },
+      { t_en: "Results", t_bn: "ফলাফল", h_en: "Present findings clearly. Reference tables/figures here.", h_bn: "ফলাফল স্পষ্টভাবে উপস্থাপন করুন। টেবিল/চিত্র এখানে রেফার করুন।" },
+      { t_en: "Discussion", t_bn: "আলোচনা", h_en: "Interpret findings, compare with literature, note limitations.", h_bn: "ফলাফলের ব্যাখ্যা, সাহিত্যের সাথে তুলনা, সীমাবদ্ধতা।" },
+      { t_en: "Conclusion", t_bn: "উপসংহার", h_en: "Summary of contributions and future research directions.", h_bn: "অবদানের সারাংশ ও ভবিষ্যৎ গবেষণার দিক।" }
+    ]
+  },
+  case: {
+    name: { en: "Medical Case Report", bn: "মেডিকেল কেস রিপোর্ট" },
+    desc: { en: "Clinical case format", bn: "ক্লিনিক্যাল কেস ফরম্যাট" },
+    sections: [
+      { t_en: "Abstract", t_bn: "সারসংক্ষেপ", abstract: true, h_en: "Brief: background, case summary, and learning point.", h_bn: "সংক্ষিপ্ত: পটভূমি, কেসের সারাংশ ও শিক্ষণীয় বিষয়।" },
+      { t_en: "Introduction", t_bn: "ভূমিকা", h_en: "Context of the condition and rationale for reporting this case.", h_bn: "রোগের প্রেক্ষাপট ও কেসটি প্রতিবেদনের যুক্তি।" },
+      { t_en: "Case Presentation", t_bn: "কেস উপস্থাপনা", h_en: "Patient demographics, history, examination, investigations, diagnosis, and management.", h_bn: "রোগীর তথ্য, ইতিহাস, পরীক্ষা, তদন্ত, রোগনির্ণয় ও ব্যবস্থাপনা।" },
+      { t_en: "Discussion", t_bn: "আলোচনা", h_en: "Explain pathophysiology, differential diagnosis, and compare with literature.", h_bn: "প্যাথোফিজিওলজি, ডিফারেনশিয়াল ডায়াগনোসিস ও সাহিত্যের সাথে তুলনা।" },
+      { t_en: "Conclusion", t_bn: "উপসংহার", h_en: "Key takeaway and clinical implications.", h_bn: "মূল শিক্ষণীয় বিষয় ও ক্লিনিক্যাল তাৎপর্য।" }
+    ]
+  },
+  imrad: {
+    name: { en: "IMRAD (Short)", bn: "IMRAD (সংক্ষিপ্ত)" },
+    desc: { en: "Introduction, Methods, Results, Discussion", bn: "ভূমিকা, পদ্ধতি, ফলাফল, আলোচনা" },
+    sections: [
+      { t_en: "Abstract", t_bn: "সারসংক্ষেপ", abstract: true, h_en: "Concise summary of the study.", h_bn: "গবেষণার সংক্ষিপ্ত সারাংশ।" },
+      { t_en: "Introduction", t_bn: "ভূমিকা", h_en: "Problem, background, and study objectives.", h_bn: "সমস্যা, পটভূমি ও উদ্দেশ্য।" },
+      { t_en: "Methods", t_bn: "পদ্ধতি", h_en: "How the study was conducted.", h_bn: "গবেষণা কীভাবে পরিচালিত হয়েছে।" },
+      { t_en: "Results", t_bn: "ফলাফল", h_en: "Findings and observations.", h_bn: "ফলাফল ও পর্যবেক্ষণ।" },
+      { t_en: "Discussion", t_bn: "আলোচনা", h_en: "Interpretation, implications, limitations, and conclusion.", h_bn: "ব্যাখ্যা, তাৎপর্য, সীমাবদ্ধতা ও উপসংহার।" }
+    ]
+  },
+  custom: {
+    name: { en: "Custom", bn: "কাস্টম" },
+    desc: { en: "Build your own structure", bn: "নিজের কাঠামো তৈরি করুন" },
+    sections: [
+      { t_en: "Section 1", t_bn: "সেকশন ১", h_en: "Add or rename sections as needed.", h_bn: "প্রয়োজন অনুযায়ী সেকশন যোগ বা পরিবর্তন করুন।" }
+    ]
+  }
+};
+
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  lang: "en",
+  theme: "light",
+  format: "research",
+  meta: { title: "", authors: "", inst: "", email: "", date: "", keywords: "" },
+  sections: [], // {title, content, abstract?, help}
+  figures: [], // {dataUrl, caption}
+  tables: [],  // {caption, rows: [[...]]}
+  refs: []     // string
+};
+
+function t(key) { return I18N[state.lang][key] || I18N.en[key] || key; }
+
+function loadFormat(formatKey) {
+  state.format = formatKey;
+  const fmt = FORMATS[formatKey];
+  state.sections = fmt.sections.map(s => ({
+    title: state.lang === "bn" ? s.t_bn : s.t_en,
+    title_en: s.t_en,
+    title_bn: s.t_bn,
+    content: "",
+    abstract: !!s.abstract,
+    help_en: s.h_en,
+    help_bn: s.h_bn
+  }));
+}
+
+/* ============================================================
+   RENDERING
+============================================================ */
+function renderFormats() {
+  const c = document.getElementById("formats");
+  c.innerHTML = "";
+  Object.keys(FORMATS).forEach((k, i) => {
+    const f = FORMATS[k];
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "format-card" + (state.format === k ? " active" : "");
+    el.dataset.testid = "format-" + k;
+    el.innerHTML = `
+      <div class="opt">${String.fromCharCode(97 + i).toUpperCase()}</div>
+      <div class="nm">${f.name[state.lang]}</div>
+      <div class="desc">${f.desc[state.lang]}</div>`;
+    el.onclick = () => {
+      // preserve content if user already typed? For simplicity, reset on format switch.
+      if (state.sections.some(s => s.content.trim())) {
+        if (!confirm(state.lang === "bn" ? "ফরম্যাট পরিবর্তন করলে বর্তমান কনটেন্ট মুছে যাবে। চালিয়ে যাবেন?" : "Switching format will clear current content. Continue?")) return;
+      }
+      loadFormat(k);
+      renderAll();
+    };
+    c.appendChild(el);
+  });
+}
+
+function renderSections() {
+  const c = document.getElementById("sectionList");
+  c.innerHTML = "";
+  state.sections.forEach((s, idx) => {
+    const block = document.createElement("div");
+    block.className = "section-block";
+    const help = state.lang === "bn" ? (s.help_bn || "") : (s.help_en || "");
+    block.innerHTML = `
+      <div class="sec-head">
+        <div class="sec-head-left">
+          <div class="sec-num serif">${idx + 1}</div>
+          <input class="sec-title-input" type="text" value="${escapeAttr(s.title)}" data-idx="${idx}" data-testid="sec-title-${idx}"/>
+        </div>
+        <div class="sec-actions">
+          <button class="icon-btn" data-act="up" data-idx="${idx}" title="Move up">▲</button>
+          <button class="icon-btn" data-act="down" data-idx="${idx}" title="Move down">▼</button>
+          <button class="icon-btn" data-act="del" data-idx="${idx}" title="Remove">×</button>
+        </div>
+      </div>
+      ${help ? `<div class="sec-help">💡 ${escapeHtml(help)}</div>` : ""}
+      <div class="sec-body">
+        <textarea class="sec-textarea" data-idx="${idx}" data-testid="sec-content-${idx}" placeholder="${escapeAttr(t('contentPh'))}">${escapeHtml(s.content)}</textarea>
+      </div>`;
+    c.appendChild(block);
+  });
+
+  // bind events
+  c.querySelectorAll(".sec-title-input").forEach(inp => {
+    inp.oninput = e => {
+      state.sections[+e.target.dataset.idx].title = e.target.value;
+      renderPreview();
+    };
+  });
+  c.querySelectorAll(".sec-textarea").forEach(ta => {
+    ta.oninput = e => {
+      state.sections[+e.target.dataset.idx].content = e.target.value;
+      renderPreview();
+    };
+  });
+  c.querySelectorAll(".icon-btn").forEach(b => {
+    b.onclick = e => {
+      const idx = +b.dataset.idx, act = b.dataset.act;
+      if (act === "del") { state.sections.splice(idx, 1); }
+      else if (act === "up" && idx > 0) {
+        [state.sections[idx-1], state.sections[idx]] = [state.sections[idx], state.sections[idx-1]];
+      } else if (act === "down" && idx < state.sections.length - 1) {
+        [state.sections[idx+1], state.sections[idx]] = [state.sections[idx], state.sections[idx+1]];
+      }
+      renderSections(); renderPreview();
+    };
+  });
+}
+
+function renderFigures() {
+  const c = document.getElementById("figGrid");
+  c.innerHTML = "";
+  state.figures.forEach((f, i) => {
+    const card = document.createElement("div");
+    card.className = "figure-card";
+    card.innerHTML = `
+      <img src="${f.dataUrl}" alt="figure" />
+      <input type="text" value="${escapeAttr(f.caption)}" placeholder="${escapeAttr(t('capPh'))}" data-i="${i}" data-testid="fig-cap-${i}"/>
+      <div class="rm" data-i="${i}" data-testid="fig-rm-${i}">${t('rmCap')}</div>`;
+    c.appendChild(card);
+  });
+  c.querySelectorAll("input").forEach(inp => {
+    inp.oninput = e => { state.figures[+e.target.dataset.i].caption = e.target.value; renderPreview(); };
+  });
+  c.querySelectorAll(".rm").forEach(b => {
+    b.onclick = e => { state.figures.splice(+b.dataset.i, 1); renderFigures(); renderPreview(); };
+  });
+}
+
+function renderTables() {
+  const c = document.getElementById("tableContainer");
+  c.innerHTML = "";
+  state.tables.forEach((tbl, ti) => {
+    const wrap = document.createElement("div");
+    wrap.className = "table-builder";
+    wrap.style.marginBottom = "10px";
+    const cols = tbl.rows[0] ? tbl.rows[0].length : 2;
+    let gridStyle = `grid-template-columns: repeat(${cols}, 1fr);`;
+    let rowsHTML = "";
+    tbl.rows.forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        rowsHTML += `<input class="tbl-input" value="${escapeAttr(cell)}" data-t="${ti}" data-r="${ri}" data-c="${ci}" data-testid="tbl-${ti}-r${ri}-c${ci}"/>`;
+      });
+    });
+    wrap.innerHTML = `
+      <input class="tbl-input tbl-caption" placeholder="${escapeAttr(t('tblCapPh'))}" value="${escapeAttr(tbl.caption||'')}" data-t="${ti}" data-cap="1" data-testid="tbl-cap-${ti}"/>
+      <div class="tbl-grid" style="${gridStyle}">${rowsHTML}</div>
+      <div class="tbl-controls">
+        <button class="small-btn" data-act="addrow" data-t="${ti}">+ Row</button>
+        <button class="small-btn" data-act="addcol" data-t="${ti}">+ Col</button>
+        <button class="small-btn" data-act="delrow" data-t="${ti}">− Row</button>
+        <button class="small-btn" data-act="delcol" data-t="${ti}">− Col</button>
+        <button class="small-btn" data-act="del" data-t="${ti}" style="color:var(--accent)">Remove table</button>
+      </div>`;
+    c.appendChild(wrap);
+  });
+  c.querySelectorAll(".tbl-input").forEach(inp => {
+    inp.oninput = e => {
+      const ti = +e.target.dataset.t;
+      if (e.target.dataset.cap) state.tables[ti].caption = e.target.value;
+      else {
+        const ri = +e.target.dataset.r, ci = +e.target.dataset.c;
+        state.tables[ti].rows[ri][ci] = e.target.value;
+      }
+      renderPreview();
+    };
+  });
+  c.querySelectorAll(".small-btn").forEach(b => {
+    b.onclick = e => {
+      const ti = +b.dataset.t, act = b.dataset.act;
+      const tbl = state.tables[ti];
+      if (act === "addrow") tbl.rows.push(new Array(tbl.rows[0].length).fill(""));
+      else if (act === "delrow" && tbl.rows.length > 1) tbl.rows.pop();
+      else if (act === "addcol") tbl.rows.forEach(r => r.push(""));
+      else if (act === "delcol" && tbl.rows[0].length > 1) tbl.rows.forEach(r => r.pop());
+      else if (act === "del") state.tables.splice(ti, 1);
+      renderTables(); renderPreview();
+    };
+  });
+}
+
+function renderRefs() {
+  const c = document.getElementById("refList");
+  c.innerHTML = "";
+  state.refs.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.className = "ref-row";
+    row.innerHTML = `
+      <div class="ref-num">[${i+1}]</div>
+      <textarea data-i="${i}" placeholder="${escapeAttr(t('refPh'))}" data-testid="ref-${i}">${escapeHtml(r)}</textarea>
+      <button class="icon-btn" data-i="${i}" title="Remove">×</button>`;
+    c.appendChild(row);
+  });
+  c.querySelectorAll("textarea").forEach(ta => {
+    ta.oninput = e => { state.refs[+e.target.dataset.i] = e.target.value; renderPreview(); };
+  });
+  c.querySelectorAll(".icon-btn").forEach(b => {
+    b.onclick = e => { state.refs.splice(+b.dataset.i, 1); renderRefs(); renderPreview(); };
+  });
+}
+
+function renderPreview() {
+  const p = document.getElementById("preview");
+  const m = state.meta;
+  let html = "";
+  html += `<h1 class="doc-title">${escapeHtml(m.title || t("untitled"))}</h1>`;
+  if (m.authors) html += `<p class="authors">${escapeHtml(m.authors)}</p>`;
+  if (m.inst) html += `<p class="affil">${escapeHtml(m.inst)}</p>`;
+  if (m.email) html += `<p class="email">${escapeHtml(m.email)}${m.date ? ` &nbsp;·&nbsp; ${escapeHtml(formatDate(m.date))}` : ""}</p>`;
+  else if (m.date) html += `<p class="email">${escapeHtml(formatDate(m.date))}</p>`;
+
+  state.sections.forEach(s => {
+    if (!s.title && !s.content) return;
+    html += `<h3 class="sec-h">${escapeHtml(s.title)}</h3>`;
+    if (s.content) {
+      const paras = s.content.split(/\n\s*\n/);
+      paras.forEach(pa => {
+        html += `<p class="${s.abstract ? 'abstract-text' : ''}">${escapeHtml(pa).replace(/\n/g, "<br/>")}</p>`;
+      });
+    }
+    if (s.abstract && m.keywords) {
+      html += `<p class="keywords"><b>${escapeHtml(t("keywords"))}:</b> ${escapeHtml(m.keywords)}</p>`;
+    }
+  });
+
+  // Figures
+  state.figures.forEach((f, i) => {
+    html += `<div class="fig"><img src="${f.dataUrl}"/><div class="fig-cap"><b>${t("figure")} ${i+1}.</b> ${escapeHtml(f.caption||"")}</div></div>`;
+  });
+
+  // Tables
+  state.tables.forEach((tbl, i) => {
+    if (tbl.caption) html += `<div class="tbl-cap-text"><b>${t("table")} ${i+1}.</b> ${escapeHtml(tbl.caption)}</div>`;
+    html += `<table class="doc-tbl"><thead><tr>`;
+    tbl.rows[0].forEach(c => html += `<th>${escapeHtml(c)}</th>`);
+    html += `</tr></thead><tbody>`;
+    for (let r = 1; r < tbl.rows.length; r++) {
+      html += `<tr>`;
+      tbl.rows[r].forEach(c => html += `<td>${escapeHtml(c)}</td>`);
+      html += `</tr>`;
+    }
+    html += `</tbody></table>`;
+  });
+
+  // References
+  if (state.refs.length && state.refs.some(r => r.trim())) {
+    html += `<h3 class="sec-h">${escapeHtml(t("references_h"))}</h3>`;
+    state.refs.forEach((r, i) => {
+      if (r.trim()) html += `<div class="ref-item">[${i+1}] ${escapeHtml(r)}</div>`;
+    });
+  }
+  p.innerHTML = html;
+}
+
+function renderAll() {
+  renderFormats();
+  renderSections();
+  renderFigures();
+  renderTables();
+  renderRefs();
+  renderPreview();
+  applyI18n();
+}
+
+/* ============================================================
+   I18N APPLY
+============================================================ */
+function applyI18n() {
+  document.body.classList.toggle("bn", state.lang === "bn");
+  document.documentElement.lang = state.lang === "bn" ? "bn" : "en";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.getAttribute("data-i18n"));
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+    el.placeholder = t(el.getAttribute("data-i18n-ph"));
+  });
+  document.getElementById("langBtn").textContent = state.lang === "en" ? "বাংলা" : "English";
+}
+
+/* ============================================================
+   UTILS
+============================================================ */
+function escapeHtml(s) {
+  if (s == null) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function escapeAttr(s) {
+  if (s == null) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+}
+function formatDate(d) {
+  if (!d) return "";
+  try {
+    const dt = new Date(d);
+    return dt.toLocaleDateString(state.lang === "bn" ? "bn-BD" : "en-US", { year:"numeric", month:"long", day:"numeric" });
+  } catch { return d; }
+}
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+/* ============================================================
+   EVENT WIRING
+============================================================ */
+function wireEvents() {
+  document.getElementById("langBtn").onclick = () => {
+    state.lang = state.lang === "en" ? "bn" : "en";
+    // update section titles to localised default if they match current ones
+    const fmt = FORMATS[state.format];
+    state.sections.forEach((s, i) => {
+      const def = fmt.sections[i];
+      if (def) {
+        if (state.lang === "bn" && s.title === s.title_en) s.title = s.title_bn;
+        else if (state.lang === "en" && s.title === s.title_bn) s.title = s.title_en;
+      }
+    });
+    renderAll();
+  };
+
+  document.getElementById("themeBtn").onclick = () => {
+    state.theme = state.theme === "light" ? "dark" : "light";
+    document.body.setAttribute("data-theme", state.theme);
+  };
+
+  ["Title","Authors","Inst","Email","Date","Keywords"].forEach(k => {
+    const el = document.getElementById("meta" + k);
+    el.oninput = e => { state.meta[k.toLowerCase()] = e.target.value; renderPreview(); };
+  });
+
+  document.getElementById("addSecBtn").onclick = () => {
+    const input = document.getElementById("newSecName");
+    const name = input.value.trim() || (state.lang === "bn" ? "নতুন সেকশন" : "New Section");
+    state.sections.push({ title: name, title_en: name, title_bn: name, content: "", help_en: "", help_bn: "" });
+    input.value = "";
+    renderSections(); renderPreview();
+  };
+
+  document.getElementById("figInput").onchange = e => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const r = new FileReader();
+      r.onload = ev => {
+        state.figures.push({ dataUrl: ev.target.result, caption: "" });
+        renderFigures(); renderPreview();
+      };
+      r.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  document.getElementById("addTableBtn").onclick = () => {
+    state.tables.push({ caption: "", rows: [["", "", ""], ["", "", ""], ["", "", ""]] });
+    renderTables(); renderPreview();
+  };
+
+  document.getElementById("addRefBtn").onclick = () => {
+    state.refs.push("");
+    renderRefs(); renderPreview();
+  };
+
+  document.getElementById("helpBtn").onclick = () => document.getElementById("helpModal").classList.add("show");
+  document.getElementById("closeHelp").onclick = () => document.getElementById("helpModal").classList.remove("show");
+  document.getElementById("helpModal").onclick = e => {
+    if (e.target.id === "helpModal") e.target.classList.remove("show");
+  };
+
+  document.getElementById("printBtn").onclick = () => window.print();
+  document.getElementById("dlPdf").onclick = downloadPDF;
+  document.getElementById("dlDocx").onclick = downloadDOCX;
+}
+
+/* ============================================================
+   PDF GENERATION (jsPDF text mode for selectable text)
+============================================================ */
+async function downloadPDF() {
+  showToast(t("generating"));
+  await new Promise(r => setTimeout(r, 60));
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 64;
+  const usableW = pageW - margin * 2;
+  let y = margin;
+
+  function ensureSpace(h) {
+    if (y + h > pageH - margin) { doc.addPage(); y = margin; }
+  }
+  function writeText(text, opts={}) {
+    const size = opts.size || 11;
+    const style = opts.style || "normal";
+    const align = opts.align || "left";
+    const lh = opts.lh || 1.45;
+    doc.setFont("times", style);
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(text, usableW);
+    lines.forEach(line => {
+      ensureSpace(size * lh);
+      let x = margin;
+      if (align === "center") x = pageW / 2;
+      else if (align === "right") x = pageW - margin;
+      doc.text(line, x, y, { align });
+      y += size * lh;
+    });
+  }
+  function spacer(h) { y += h; }
+
+  const m = state.meta;
+
+  // Title
+  writeText(m.title || t("untitled"), { size: 18, style: "bold", align: "center", lh: 1.25 });
+  spacer(4);
+  if (m.authors) writeText(m.authors, { size: 11, align: "center" });
+  if (m.inst) writeText(m.inst, { size: 10, style: "italic", align: "center" });
+  if (m.email || m.date) {
+    const line = [m.email, m.date ? formatDate(m.date) : ""].filter(Boolean).join("  ·  ");
+    writeText(line, { size: 9, align: "center" });
+  }
+  spacer(14);
+
+  // Sections
+  state.sections.forEach(s => {
+    if (!s.title && !s.content) return;
+    ensureSpace(28);
+    // Section heading
+    doc.setFont("times", "bold");
+    doc.setFontSize(12);
+    const heading = (s.title || "").toUpperCase();
+    doc.text(heading, margin, y);
+    y += 6;
+    doc.setLineWidth(0.6);
+    doc.line(margin, y, pageW - margin, y);
+    y += 12;
+
+    if (s.content) {
+      const paras = s.content.split(/\n\s*\n/);
+      paras.forEach(pa => {
+        writeText(pa.replace(/\n/g, " "), { size: s.abstract ? 10.5 : 11, style: s.abstract ? "italic" : "normal", lh: 1.5 });
+        spacer(6);
+      });
+    }
+
+    if (s.abstract && m.keywords) {
+      doc.setFont("times", "bold");
+      doc.setFontSize(10);
+      doc.text(t("keywords") + ": ", margin, y);
+      const w = doc.getTextWidth(t("keywords") + ": ");
+      doc.setFont("times", "normal");
+      const kwLines = doc.splitTextToSize(m.keywords, usableW - w);
+      kwLines.forEach((line, i) => {
+        if (i === 0) doc.text(line, margin + w, y);
+        else { y += 12; doc.text(line, margin, y); }
+      });
+      y += 16;
+    }
+  });
+
+  // Figures
+  for (let i = 0; i < state.figures.length; i++) {
+    const f = state.figures[i];
+    try {
+      const img = new Image();
+      img.src = f.dataUrl;
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+      const maxW = usableW;
+      const maxH = 280;
+      let w = img.width, h = img.height;
+      const ratio = Math.min(maxW / w, maxH / h, 1);
+      w *= ratio; h *= ratio;
+      ensureSpace(h + 36);
+      doc.addImage(f.dataUrl, "PNG", (pageW - w) / 2, y, w, h);
+      y += h + 8;
+      doc.setFont("times", "italic");
+      doc.setFontSize(9.5);
+      const cap = `${t("figure")} ${i+1}. ${f.caption || ""}`;
+      const lines = doc.splitTextToSize(cap, usableW);
+      lines.forEach(l => { ensureSpace(12); doc.text(l, pageW/2, y, { align: "center" }); y += 12; });
+      spacer(8);
+    } catch(e) { console.error(e); }
+  }
+
+  // Tables
+  state.tables.forEach((tbl, ti) => {
+    if (tbl.caption) {
+      doc.setFont("times", "italic"); doc.setFontSize(9.5);
+      ensureSpace(14);
+      const cap = `${t("table")} ${ti+1}. ${tbl.caption}`;
+      const lines = doc.splitTextToSize(cap, usableW);
+      lines.forEach(l => { ensureSpace(12); doc.text(l, pageW/2, y, { align:"center" }); y+=12; });
+    }
+    const cols = tbl.rows[0].length;
+    const colW = usableW / cols;
+    doc.setFontSize(9.5);
+    tbl.rows.forEach((row, ri) => {
+      const isHead = ri === 0;
+      doc.setFont("times", isHead ? "bold" : "normal");
+      // measure row height
+      let maxLines = 1;
+      const cellLines = row.map(c => {
+        const ls = doc.splitTextToSize(String(c||""), colW - 8);
+        if (ls.length > maxLines) maxLines = ls.length;
+        return ls;
+      });
+      const rowH = maxLines * 12 + 6;
+      ensureSpace(rowH);
+      if (isHead) {
+        doc.setFillColor(235, 235, 235);
+        doc.rect(margin, y - 10, usableW, rowH, "F");
+      }
+      doc.setDrawColor(120);
+      doc.rect(margin, y - 10, usableW, rowH);
+      let x = margin;
+      cellLines.forEach((ls, ci) => {
+        doc.rect(x, y - 10, colW, rowH);
+        ls.forEach((line, li) => doc.text(line, x + 4, y + li * 12 - 2));
+        x += colW;
+      });
+      y += rowH;
+    });
+    spacer(10);
+  });
+
+  // References
+  const validRefs = state.refs.filter(r => r.trim());
+  if (validRefs.length) {
+    ensureSpace(28);
+    doc.setFont("times", "bold"); doc.setFontSize(12);
+    doc.text(t("references_h").toUpperCase(), margin, y);
+    y += 6;
+    doc.line(margin, y, pageW - margin, y);
+    y += 12;
+    doc.setFontSize(10);
+    validRefs.forEach((r, i) => {
+      doc.setFont("times", "normal");
+      const txt = `[${i+1}] ${r}`;
+      const lines = doc.splitTextToSize(txt, usableW - 6);
+      lines.forEach((line, li) => {
+        ensureSpace(13);
+        doc.text(line, margin + (li === 0 ? 0 : 18), y);
+        y += 13;
+      });
+      spacer(3);
+    });
+  }
+
+  // Page numbers
+  const total = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setFont("times", "normal"); doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`${i} / ${total}`, pageW / 2, pageH - 24, { align: "center" });
+    doc.setTextColor(0);
+  }
+
+  const fname = (m.title || "article").replace(/[^a-z0-9\-_ ]/gi, "").trim().slice(0, 60) || "article";
+  doc.save(`${fname}.pdf`);
+  showToast(t("pdfReady"));
+}
+
+/* ============================================================
+   DOCX GENERATION (minimal Office Open XML via JSZip)
+============================================================ */
+async function downloadDOCX() {
+  showToast(t("generating"));
+  await new Promise(r => setTimeout(r, 60));
+
+  const m = state.meta;
+
+  const E = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  function para(text, opts={}) {
+    const { bold=false, italic=false, align="left", size=22, spaceAfter=120, lineBreak=false } = opts;
+    const rPr = `<w:rPr>${bold?'<w:b/><w:bCs/>':''}${italic?'<w:i/><w:iCs/>':''}<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr>`;
+    const pPr = `<w:pPr><w:spacing w:after="${spaceAfter}" w:line="300" w:lineRule="auto"/><w:jc w:val="${align}"/></w:pPr>`;
+    // handle line breaks within text
+    const parts = String(text||"").split("\n");
+    let runs = "";
+    parts.forEach((seg, i) => {
+      if (i > 0) runs += `<w:r>${rPr}<w:br/></w:r>`;
+      runs += `<w:r>${rPr}<w:t xml:space="preserve">${E(seg)}</w:t></w:r>`;
+    });
+    return `<w:p>${pPr}${runs}</w:p>`;
+  }
+  function heading(text) {
+    const rPr = `<w:rPr><w:b/><w:bCs/><w:caps/><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>`;
+    const pPr = `<w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="666666"/></w:pBdr><w:spacing w:before="280" w:after="160"/></w:pPr>`;
+    return `<w:p>${pPr}<w:r>${rPr}<w:t xml:space="preserve">${E(text)}</w:t></w:r></w:p>`;
+  }
+  function mixedPara(parts, opts={}) {
+    const { align="left", spaceAfter=120, size=22 } = opts;
+    const pPr = `<w:pPr><w:spacing w:after="${spaceAfter}" w:line="300" w:lineRule="auto"/><w:jc w:val="${align}"/></w:pPr>`;
+    const runs = parts.map(p => {
+      const rPr = `<w:rPr>${p.bold?'<w:b/><w:bCs/>':''}${p.italic?'<w:i/><w:iCs/>':''}<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr>`;
+      return `<w:r>${rPr}<w:t xml:space="preserve">${E(p.text)}</w:t></w:r>`;
+    }).join("");
+    return `<w:p>${pPr}${runs}</w:p>`;
+  }
+
+  let body = "";
+
+  // Title
+  body += para(m.title || t("untitled"), { bold:true, size:36, align:"center", spaceAfter:120 });
+  if (m.authors) body += para(m.authors, { size:22, align:"center", spaceAfter:60 });
+  if (m.inst) body += para(m.inst, { italic:true, size:20, align:"center", spaceAfter:60 });
+  if (m.email || m.date) {
+    const txt = [m.email, m.date ? formatDate(m.date) : ""].filter(Boolean).join("  ·  ");
+    body += para(txt, { size:18, align:"center", spaceAfter:240 });
+  } else body += para("", { spaceAfter:240 });
+
+  // Sections
+  state.sections.forEach(s => {
+    if (!s.title && !s.content) return;
+    body += heading(s.title || "");
+    if (s.content) {
+      const paras = s.content.split(/\n\s*\n/);
+      paras.forEach(p => {
+        body += para(p, { italic: !!s.abstract, size: s.abstract ? 21 : 22, align:"both" });
+      });
+    }
+    if (s.abstract && m.keywords) {
+      body += mixedPara([
+        { text: t("keywords") + ": ", bold: true },
+        { text: m.keywords }
+      ]);
+    }
+  });
+
+  // Figures
+  const mediaFiles = [];
+  const mediaRels = [];
+  for (let i = 0; i < state.figures.length; i++) {
+    const f = state.figures[i];
+    const dataUrl = f.dataUrl;
+    const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!match) continue;
+    const ext = match[1] === "jpeg" ? "jpg" : match[1];
+    const b64 = match[2];
+    const fname = `image${i+1}.${ext}`;
+    mediaFiles.push({ name: fname, base64: b64 });
+    const rId = `rIdImg${i+1}`;
+    mediaRels.push({ id: rId, target: `media/${fname}` });
+
+    // get image dimensions
+    const img = new Image();
+    img.src = dataUrl;
+    await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
+    // max 5 inches wide, EMU = px * 9525 at 96dpi
+    const maxWpx = 480;
+    const maxHpx = 380;
+    let w = img.width, h = img.height;
+    const ratio = Math.min(maxWpx/w, maxHpx/h, 1);
+    w *= ratio; h *= ratio;
+    const cx = Math.round(w * 9525);
+    const cy = Math.round(h * 9525);
+
+    const drawing = `
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="160" w:after="80"/></w:pPr><w:r><w:drawing>
+<wp:inline distT="0" distB="0" distL="0" distR="0">
+<wp:extent cx="${cx}" cy="${cy}"/>
+<wp:effectExtent l="0" t="0" r="0" b="0"/>
+<wp:docPr id="${i+1}" name="Picture ${i+1}"/>
+<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>
+<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<pic:nvPicPr><pic:cNvPr id="${i+1}" name="${fname}"/><pic:cNvPicPr/></pic:nvPicPr>
+<pic:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+    body += drawing;
+    body += mixedPara([
+      { text: `${t("figure")} ${i+1}. `, bold:true, italic:true },
+      { text: f.caption || "", italic:true }
+    ], { align:"center", size:20 });
+  }
+
+  // Tables
+  state.tables.forEach((tbl, ti) => {
+    if (tbl.caption) {
+      body += mixedPara([
+        { text: `${t("table")} ${ti+1}. `, bold:true, italic:true },
+        { text: tbl.caption, italic:true }
+      ], { align:"center", size:20 });
+    }
+    const cols = tbl.rows[0].length;
+    const colW = Math.round(9000 / cols); // total ~9000 twips for 6.25"
+    const tblGrid = `<w:tblGrid>${Array(cols).fill(`<w:gridCol w:w="${colW}"/>`).join("")}</w:tblGrid>`;
+    let rowsXml = "";
+    tbl.rows.forEach((row, ri) => {
+      const isHead = ri === 0;
+      const cells = row.map(c => {
+        const shade = isHead ? '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/>' : '';
+        const rPr = `<w:rPr>${isHead?'<w:b/>':''}<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="20"/></w:rPr>`;
+        return `<w:tc><w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/>${shade}</w:tcPr><w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r>${rPr}<w:t xml:space="preserve">${E(c||"")}</w:t></w:r></w:p></w:tc>`;
+      }).join("");
+      rowsXml += `<w:tr>${cells}</w:tr>`;
+    });
+    body += `<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="666666"/><w:left w:val="single" w:sz="4" w:color="666666"/><w:bottom w:val="single" w:sz="4" w:color="666666"/><w:right w:val="single" w:sz="4" w:color="666666"/><w:insideH w:val="single" w:sz="4" w:color="888888"/><w:insideV w:val="single" w:sz="4" w:color="888888"/></w:tblBorders></w:tblPr>${tblGrid}${rowsXml}</w:tbl>`;
+    body += para("", { spaceAfter: 120 });
+  });
+
+  // References
+  const validRefs = state.refs.filter(r => r.trim());
+  if (validRefs.length) {
+    body += heading(t("references_h"));
+    validRefs.forEach((r, i) => {
+      body += mixedPara([
+        { text: `[${i+1}] `, bold:true },
+        { text: r }
+      ], { size:20 });
+    });
+  }
+
+  // Build document.xml
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:body>
+    ${body}
+    <w:sectPr>
+      <w:pgSz w:w="12240" w:h="15840"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="png" ContentType="image/png"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Default Extension="jpeg" ContentType="image/jpeg"/>
+  <Default Extension="gif" ContentType="image/gif"/>
+  <Default Extension="webp" ContentType="image/webp"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  let docRelsBody = "";
+  mediaRels.forEach(mr => {
+    docRelsBody += `<Relationship Id="${mr.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${mr.target}"/>`;
+  });
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${docRelsBody}
+</Relationships>`;
+
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", contentTypes);
+  zip.folder("_rels").file(".rels", rootRels);
+  const wordFolder = zip.folder("word");
+  wordFolder.file("document.xml", documentXml);
+  wordFolder.folder("_rels").file("document.xml.rels", docRels);
+  if (mediaFiles.length) {
+    const mediaFolder = wordFolder.folder("media");
+    mediaFiles.forEach(mf => mediaFolder.file(mf.name, mf.base64, { base64: true }));
+  }
+
+  const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  const fname = (m.title || "article").replace(/[^a-z0-9\-_ ]/gi, "").trim().slice(0, 60) || "article";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${fname}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(t("docxReady"));
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+function init() {
+  state.meta.date = new Date().toISOString().slice(0,10);
+  document.getElementById("metaDate").value = state.meta.date;
+  loadFormat("research");
+  wireEvents();
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
